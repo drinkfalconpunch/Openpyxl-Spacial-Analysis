@@ -1,7 +1,7 @@
 import openpyxl
 import math
 
-file = 'WellSubset.xlsx'
+file = 'Wells.xlsx'
 
 maxDistance = 0.0005 #degrees
 
@@ -10,7 +10,7 @@ sheet = wb.get_sheet_by_name('Sheet0')
 
 #dump the excel sheet into a dictionary
 wells = {}
-for row in range(2, 50):#sheet.max_row + 1):
+for row in range(2, sheet.max_row + 1):
     api = sheet['N' + str(row)].value
     wellname = sheet['B' + str(row)].value
     wellnumber = sheet['C' + str(row)].value
@@ -51,10 +51,9 @@ sheet['S1'] = 'Neighbor Longitude'
 
 distances = {}
 #iterate over all values and check if distance between two points is within maxDistance
-wellsreviewed = set()
 for api in list(wells):
     for otherapi in list(wells):
-        if otherapi == api or api in wellsreviewed or otherapi in wellsreviewed:
+        if otherapi == api:
             continue
         distance = math.sqrt((wells[api]['lat'] - wells[otherapi]['lat'])**2 + (wells[api]['long'] - wells[otherapi]['long'])**2)
         if distance < maxDistance:
@@ -67,11 +66,12 @@ for api in list(wells):
             neighborlat = wells[otherapi]['lat']
             neighborlong = wells[otherapi]['long']
             wells[api]['neighbors'][otherapi] = dict(wellname=neighborwellname, wellnumber=neighborwellnumber, operator=neighboroperator, county=neighborcounty, zone=neighborzone, firstprod=neighborfirstprod, lat=neighborlat, long=neighborlong, distance=distance)
-            wellsreviewed.add(otherapi)
-    wellsreviewed.add(api)
 
+wellsreviewed = set()
 rowNum = 2
 for api in wells:
+    if api in wellsreviewed:
+        continue
     neighborwells = wells[api]['neighbors']
     sheet.cell(row=rowNum, column=1).value = wells[api]['wellname']
     sheet.cell(row=rowNum, column=2).value = wells[api]['wellnumber']
@@ -97,5 +97,7 @@ for api in wells:
         sheet.cell(row=rowNum, column=18).value = neighborwells[neighborapi]['lat']
         sheet.cell(row=rowNum, column=19).value = neighborwells[neighborapi]['long']
         rowNum = rowNum + 1
+        wellsreviewed.add(neighborapi)
+    wellsreviewed.add(api)
 
 output.save('neighbors.xlsx')
