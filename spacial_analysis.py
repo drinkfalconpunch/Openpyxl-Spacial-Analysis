@@ -1,7 +1,7 @@
 import openpyxl
 import math
 
-file = 'Wells.xlsx'
+file = 'WellSubset.xlsx'
 
 maxDistance = 0.0005 #degrees
 
@@ -10,7 +10,7 @@ sheet = wb.get_sheet_by_name('Sheet0')
 
 #dump the excel sheet into a dictionary
 wells = {}
-for row in range(2, sheet.max_row + 1):
+for row in range(2, 50):#sheet.max_row + 1):
     api = sheet['N' + str(row)].value
     wellname = sheet['B' + str(row)].value
     wellnumber = sheet['C' + str(row)].value
@@ -26,23 +26,6 @@ for row in range(2, sheet.max_row + 1):
 for api in list(wells):
     if type(wells[api]['lat']) is str:
         del wells[api]
-
-#iterate over all values and check if distance between two points is within maxDistance
-for api in wells:
-    for otherapi in wells:
-        if otherapi == api:
-            continue
-        distance = math.sqrt((wells[api]['lat'] - wells[otherapi]['lat'])**2 + (wells[api]['long'] - wells[otherapi]['long'])**2)
-        if distance < maxDistance:
-            neighborwellname = wells[otherapi]['wellname']
-            neighborwellnumber = wells[otherapi]['wellnumber']
-            neighboroperator = wells[otherapi]['operator']
-            neighborcounty = wells[otherapi]['county']
-            neighborzone = wells[otherapi]['zone']
-            neighborfirstprod = wells[otherapi]['firstprod']
-            neighborlat = wells[otherapi]['lat']
-            neighborlong = wells[otherapi]['long']
-            wells[api]['neighbors'][otherapi] = dict(wellname=neighborwellname, wellnumber=neighborwellnumber, operator=neighboroperator, county=neighborcounty, zone=neighborzone, firstprod=neighborfirstprod, lat=neighborlat, long=neighborlong)
 
 output = openpyxl.Workbook()
 sheet = output.get_sheet_by_name('Sheet')
@@ -65,6 +48,27 @@ sheet['P1'] = 'Neighbor Zone'
 sheet['Q1'] = 'Neighbor First Prod'
 sheet['R1'] = 'Neighbor Latitude'
 sheet['S1'] = 'Neighbor Longitude'
+
+distances = {}
+#iterate over all values and check if distance between two points is within maxDistance
+wellsreviewed = set()
+for api in list(wells):
+    for otherapi in list(wells):
+        if otherapi == api or api in wellsreviewed or otherapi in wellsreviewed:
+            continue
+        distance = math.sqrt((wells[api]['lat'] - wells[otherapi]['lat'])**2 + (wells[api]['long'] - wells[otherapi]['long'])**2)
+        if distance < maxDistance:
+            neighborwellname = wells[otherapi]['wellname']
+            neighborwellnumber = wells[otherapi]['wellnumber']
+            neighboroperator = wells[otherapi]['operator']
+            neighborcounty = wells[otherapi]['county']
+            neighborzone = wells[otherapi]['zone']
+            neighborfirstprod = wells[otherapi]['firstprod']
+            neighborlat = wells[otherapi]['lat']
+            neighborlong = wells[otherapi]['long']
+            wells[api]['neighbors'][otherapi] = dict(wellname=neighborwellname, wellnumber=neighborwellnumber, operator=neighboroperator, county=neighborcounty, zone=neighborzone, firstprod=neighborfirstprod, lat=neighborlat, long=neighborlong, distance=distance)
+            wellsreviewed.add(otherapi)
+    wellsreviewed.add(api)
 
 rowNum = 2
 for api in wells:
